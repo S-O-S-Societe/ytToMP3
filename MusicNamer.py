@@ -21,7 +21,7 @@ class MusicNamer:
         in youtube music
     """
 
-    def __init__(self, default_folder : str = DOWNLOAD_FOLDER) -> None:
+    def __init__(self, folder : str = DOWNLOAD_FOLDER) -> None:
         """
         Object initializer
 
@@ -32,7 +32,7 @@ class MusicNamer:
             The default is DOWNLOAD_FOLDER.
 
         """
-        self.folder = default_folder
+        self.folder = folder
         self.api    = ytapi.YTMusic()
         self.files = [join(self.folder, f + '.mp3') for f in self.listMP3Files()]
 
