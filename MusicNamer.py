@@ -6,37 +6,45 @@ Created on Sat May  6 19:20:55 2023
 """
 
 import eyed3
+import requests
 from os import listdir, rename
 from os.path import join
+from tqdm import tqdm
 import ytmusicapi as ytapi
 
 DOWNLOAD_FOLDER = r"C:\Users\baudo\Downloads"
 
 
-# album_cover_url = query['thumbnails'][0]['url']
-# audio = eyed3.load(file_path)
-# if (audio.tag.title == None) or (audio.tag.artist == None)or (audio.tag.album == None):
-#     audio.tag.title  = query['title']
-#     audio.tag.artist = query['artists'][0]['name']
-#     audio.tag.album  = query['album']['name']
-#     audio.tag.images.set(3,requests.get(album_cover_url).content, 'image/jpeg')
-#     audio.tag.save(encoding='utf-8',version=eyed3.id3.ID3_V2_3)
-# return audio
 
 class Music:
+    target_folder = r"C:\Users\baudo\Music"
     
     
     def __init__(self, path : str, attributes : dict) -> None :
-        
-        self.target_folder = r"C:\Users\baudo\Music"    
-        self.attributes = attributes
-        
-    
-    def relocate(self, file, title) -> None :
-        
-        rename(file, join(self.target_folder, title))
 
+        self.attributes = attributes
+        self.path = path
+        self.audio = eyed3.load(path)
+        
+        self.assignTags()
+        self.relocate(path, self.attributes['title'])
     
+
+    def relocate(self, file : str, title : str) -> None :
+        
+        rename(file, join(Music.target_folder, title + '.mp3'))
+        
+
+    def assignTags(self) -> None :
+        
+        self.audio.tag.title  = self.attributes['title']
+        self.audio.tag.artist = self.attributes['artists'][0]['name']
+        self.audio.tag.album  = self.attributes['album']['name']
+        cover = self.attributes['thumbnails'][1]['url']
+        self.audio.tag.images.set(3,requests.get(cover).content, 'image/jpeg')
+        self.audio.tag.save(encoding='utf-8',version=eyed3.id3.ID3_V2_3)
+
+   
 
 class MusicNamer:
     
@@ -87,12 +95,14 @@ class MusicNamer:
         matches = self.getMusicAttributes(musicname, 'duration_seconds')
         best_match = matches.index(min(matches, \
                                           key = lambda n : abs(n - a_duration)))
+        print(f"""matching duration : {min(a_duration, matches[best_match]) 
+              /max(a_duration, matches[best_match]) * 100 :.2f} %""")
         return self.getMusicAttributes(musicname)[best_match]    
         
     
     def renameFiles(self) -> None :
         
-        for file in self.listMP3Files():
+        for file in tqdm(self.listMP3Files()):
             music_path = join(self.folder, file + '.mp3')
             m = Music(music_path, self.associateMusicToFile(file, music_path))
         return m
@@ -102,7 +112,6 @@ class MusicNamer:
 if __name__ == "__main__":
     
     musicNamer = MusicNamer()
-    # attr = musicNamer.associateMusicToFile("The Rock OST Compilation", join(musicNamer.folder, "The Rock OST Compilation.mp3"))
     m = musicNamer.renameFiles()
 
 
