@@ -15,10 +15,8 @@ class Music:
     Music object that tags an mp3 file with supposedly correct tags and
     then relocate it to the wanted folder
     """
-    target_folder = r"C:\Users\baudo\Music"
 
-
-    def __init__(self, path : str, attributes : dict) -> None :
+    def __init__(self, path : str, target_folder : str, attributes : dict) -> None :
         """
         Parameters
         ----------
@@ -31,6 +29,7 @@ class Music:
 
         self.attributes = attributes
         self.path = path
+        self.target_folder = target_folder
         self.audio = eyed3.load(path)
 
         self.assignTags()
@@ -50,7 +49,7 @@ class Music:
 
         """
 
-        rename(file, join(Music.target_folder, title + '.mp3'))
+        rename(file, join(self.target_folder, title + '.mp3'))
 
 
     def assignTags(self) -> None :

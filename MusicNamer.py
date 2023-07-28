@@ -9,6 +9,7 @@ from os import listdir
 from os.path import join
 import ytmusicapi as ytapi
 from tqdm import tqdm
+from mutagen.mp3 import MP3
 import eyed3
 from Music import Music
 
@@ -21,7 +22,7 @@ class MusicNamer:
         in youtube music
     """
 
-    def __init__(self, folder : str = DOWNLOAD_FOLDER) -> None:
+    def __init__(self, target_path : str, folder : str = DOWNLOAD_FOLDER) -> None:
         """
         Object initializer
 
@@ -33,6 +34,7 @@ class MusicNamer:
 
         """
         self.folder = folder
+        self.target_path = target_path
         self.api    = ytapi.YTMusic()
         self.files = [join(self.folder, f + '.mp3') for f in self.listMP3Files()]
 
@@ -56,9 +58,13 @@ class MusicNamer:
 
         return filename.endswith(".mp3")
 
-
     @staticmethod
-    def cleanFilename(filename : str) -> str :
+    def remove_suffix(input_string, suffix):
+        if suffix and input_string.endswith(suffix):
+            return input_string[:-len(suffix)]
+        return input_string
+
+    def cleanFilename(self, filename : str) -> str :
         """
         Remove unecessary file extension and characters before using it for search
 
@@ -74,7 +80,7 @@ class MusicNamer:
 
         """
 
-        return filename.removesuffix(".mp3")
+        return self.remove_suffix(filename,".mp3")
 
 
     @staticmethod
@@ -93,7 +99,8 @@ class MusicNamer:
 
         """
 
-        return eyed3.load(filename).info.time_secs
+        # return eyed3.load(filename).info.time_secs
+        return MP3(filename).info.length
 
 
     def listMP3Files(self) -> list :
@@ -131,7 +138,7 @@ class MusicNamer:
             The attributes of each possible matches as a list of dict.
 
         """
-        query = self.api.search(query=musicName,filter='songs',limit=1)
+        query = self.api.search(query=musicName,filter='songs',limit=10)
         if attribute is not None :
             try :
                 query = [q[attribute] for q in query]
@@ -178,4 +185,4 @@ class MusicNamer:
 
         for file in tqdm(self.listMP3Files()):
             music_path = join(self.folder, file + '.mp3')
-            Music(music_path, self.associateMusicToFile(file, music_path))
+            Music(music_path, self.target_path, self.associateMusicToFile(file, music_path))
