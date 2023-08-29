@@ -60,8 +60,11 @@ class Music:
 
         self.audio.tag.title  = self.attributes['title']
         self.audio.tag.artist = self.attributes['artists'][0]['name']
-        self.audio.tag.album  = self.attributes['album']['name']
-        cover = self.attributes['thumbnails'][1]['url']
-        self.audio.tag.images.set(3, get(cover, timeout = 3).content,\
+        try:
+            self.audio.tag.album  = self.attributes['album']['name']
+            cover = self.attributes['thumbnails'][1]['url']
+            self.audio.tag.images.set(3, get(cover, timeout = 3).content,\
                                   'image/jpeg')
+        except (KeyError,IndexError):
+            pass
         self.audio.tag.save(encoding='utf-8',version=eyed3.id3.ID3_V2_3)

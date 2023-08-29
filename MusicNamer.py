@@ -10,7 +10,6 @@ from os.path import join
 import ytmusicapi as ytapi
 from tqdm import tqdm
 from mutagen.mp3 import MP3
-import eyed3
 from Music import Music
 
 DOWNLOAD_FOLDER = r"C:\Users\baudo\Downloads"
@@ -22,7 +21,7 @@ class MusicNamer:
         in youtube music
     """
 
-    def __init__(self, target_path : str, folder : str = DOWNLOAD_FOLDER) -> None:
+    def __init__(self, target_path : str = DOWNLOAD_FOLDER, folder : str = DOWNLOAD_FOLDER) -> None:
         """
         Object initializer
 
@@ -36,7 +35,7 @@ class MusicNamer:
         self.folder = folder
         self.target_path = target_path
         self.api    = ytapi.YTMusic()
-        self.files = [join(self.folder, f + '.mp3') for f in self.listMP3Files()]
+        self.processing_state = 0
 
 
     @staticmethod
@@ -112,11 +111,12 @@ class MusicNamer:
             List of cleaned music names in the folder, without the whole path.
 
         """
-        return list(map(self.cleanFilename,
+        clean_mp3 = list(map(self.cleanFilename,
                    list(filter(self.isMP3, listdir(self.folder)))))
+        self.files = [join(self.folder, f + '.mp3') for f in clean_mp3]
 
 
-    def getMusicAttributes(self, musicName : str, attribute : str = None) -> list :
+    def getMusicAttributes(self, musicName : str, search_key : str = None, attribute : str = None) -> list :
         """
 
         Parameters
@@ -138,12 +138,11 @@ class MusicNamer:
             The attributes of each possible matches as a list of dict.
 
         """
-        query = self.api.search(query=musicName,filter='songs',limit=10)
-        if attribute is not None :
-            try :
-                query = [q[attribute] for q in query]
-            except AttributeError:
-                print("Unknown attribute to the yt api query")
+        query = self.api.search(query=musicName,limit=10)
+        if (attribute is not None) and (search_key is not None) :
+            return [qu[attribute] for qu in list(filter(lambda q : attribute in list(q.keys()), query))]
+        elif (attribute is not None) and (search_key is None):
+            return [qu for qu in list(filter(lambda q : attribute in list(q.keys()), query))]
         return query
 
 
@@ -167,12 +166,12 @@ class MusicNamer:
         """
 
         a_duration = self.getMP3Duration(filename)
-        matches = self.getMusicAttributes(musicname, 'duration_seconds')
+        matches = self.getMusicAttributes(musicname, 'duration_seconds', 'duration_seconds')
         best_match = matches.index(min(matches, \
                                           key = lambda n : abs(n - a_duration)))
         print(f"""matching duration : {min(a_duration, matches[best_match])
               /max(a_duration, matches[best_match]) * 100 :.2f} %""")
-        return self.getMusicAttributes(musicname)[best_match]
+        return self.getMusicAttributes(musicname, attribute="duration_seconds")[best_match]
 
 
     def renameFiles(self) -> None :
@@ -183,6 +182,7 @@ class MusicNamer:
 
         """
 
-        for file in tqdm(self.listMP3Files()):
-            music_path = join(self.folder, file + '.mp3')
+        for file in tqdm(self.files):
+            music_path = join(self.folder, file)
             Music(music_path, self.target_path, self.associateMusicToFile(file, music_path))
+            self.processing_state += 1
